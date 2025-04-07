@@ -25,7 +25,7 @@ jobs:
 
     - name: Run lightning script
       run: |
-        python lightning_script.py  # Run the script
+        python ls.py  # Run the script
 
     - name: Commit and push changes
       run: |
