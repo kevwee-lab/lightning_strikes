@@ -71,30 +71,29 @@ def fetch_lightning_data():
     return pd.DataFrame(all_strikes)
 
 def save_data(df):
-    """Save data to CSV with proper formatting"""
     if df.empty:
-        print("No lightning data to save")
+        print("No data to save")
         return
 
-    try:
-        # Convert datetime fields
-        datetime_fields = ['observation_window', 'data_updated', 'strike_time']
-        for field in datetime_fields:
-            df[field] = pd.to_datetime(df[field], format='ISO8601', errors='coerce')
-
-        # File operations
-        file_exists = os.path.isfile(SAVE_PATH)
-        df.to_csv(SAVE_PATH, mode='a', header=not file_exists, index=False)
-        print(f"Successfully saved {len(df)} new strikes to {SAVE_PATH}")
-
-    except Exception as e:
-        print(f"Failed to save data: {str(e)}")
+    # Create daily filename inside the directory
+    filename = f"lightning_{datetime.now().strftime('%Y-%m-%d')}.csv"
+    SAVE_PATH = os.path.join(DIRECTORY, filename)
+    
+    # Convert datetime fields
+    datetime_fields = ['observation_window', 'data_updated', 'strike_time']
+    for field in datetime_fields:
+        df[field] = pd.to_datetime(df[field], format='ISO8601', errors='coerce')
+    
+    # Ensure directory exists
+    os.makedirs(DIRECTORY, exist_ok=True)
+    
+    # Save with header
+    df.to_csv(SAVE_PATH, index=False)
+    print(f"Saved {len(df)} strikes to {SAVE_PATH}")
 
 if __name__ == "__main__":
-    try:
-        os.makedirs(DIRECTORY, exist_ok=True)
-        lightning_df = fetch_lightning_data()
-        save_data(lightning_df)
+    lightning_df = fetch_lightning_data()
+    save_data(lightning_df)
     except Exception as e:
         print(f"Critical error: {str(e)}")
         exit(1)
