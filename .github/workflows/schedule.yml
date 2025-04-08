@@ -33,7 +33,7 @@ jobs:
         git config --global user.email "kevwee-lab@users.noreply.github.com"
     
         # Add the directory instead of the specific file
-        git add lightning_data/
+        git add lightning_data.csv
     
         git status
     
