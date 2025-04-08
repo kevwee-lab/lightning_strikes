@@ -4,8 +4,8 @@ from datetime import datetime
 import pandas as pd
 
 # Configuration
-DIRECTORY = 'lightning_data'  # Dedicated folder name
-SAVE_PATH = os.path.join(DIRECTORY, f"lightning_{datetime.now().strftime('%Y-%m-%d')}.csv")
+DIRECTORY = 'lightning_data'
+API_URL = "https://api-open.data.gov.sg/v2/real-time/api/weather"  # Added missing API_URL
 
 def fetch_lightning_data():
     """Fetch paginated lightning data from API"""
@@ -20,7 +20,7 @@ def fetch_lightning_data():
             else:
                 params.pop("paginationToken", None)
 
-            response = requests.get(API_URL, params=params)
+            response = requests.get(API_URL, params=params, timeout=10)  # Added timeout
             response.raise_for_status()
             
             data = response.json()
@@ -28,24 +28,19 @@ def fetch_lightning_data():
                 print(f"API Error: {data.get('errorMsg', 'Unknown error')}")
                 break
 
-            # Fixed debug output
-            print("\nAPI Response Keys:")
-            print(list(data.keys()))
-            if 'data' in data:
-                print("Data Keys:", list(data['data'].keys()))
-                print("Records Count:", len(data['data'].get('records', [])))
-
             # Process records
             for record in data.get('data', {}).get('records', []):
                 item = record.get('item', {})
                 for reading in item.get('readings', []):
                     try:
+                        # Safer location handling
+                        location = reading.get('location', {})
                         strike = {
                             'fetch_time': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
                             'observation_window': record.get('datetime'),
                             'data_updated': record.get('updatedTimestamp'),
-                            'latitude': float(reading.get('location', {}).get('latitude', 0)),
-                            'longitude': float(reading.get('location', {}).get('longitude', 0)),
+                            'latitude': float(location.get('latitude', 0)),
+                            'longitude': float(location.get('longitude', 0)),
                             'strike_type': reading.get('type'),
                             'description': reading.get('text'),
                             'strike_time': reading.get('datetime')
@@ -55,16 +50,12 @@ def fetch_lightning_data():
                         print(f"Error processing reading: {str(e)}")
                         continue
 
-            # Pagination control
             pagination_token = data.get('data', {}).get('paginationToken')
             if not pagination_token:
                 break
 
         except requests.exceptions.RequestException as e:
             print(f"Request failed: {str(e)}")
-            break
-        except Exception as e:
-            print(f"Unexpected error: {str(e)}")
             break
             
     return pd.DataFrame(all_strikes)
@@ -74,7 +65,7 @@ def save_data(df):
         print("No data to save")
         return
 
-    # Create daily filename inside the directory
+    # Generate filename inside function
     filename = f"lightning_{datetime.now().strftime('%Y-%m-%d')}.csv"
     SAVE_PATH = os.path.join(DIRECTORY, filename)
     
@@ -92,10 +83,8 @@ def save_data(df):
 
 if __name__ == "__main__":
     try:
-        # Main execution
         lightning_df = fetch_lightning_data()
         save_data(lightning_df)
     except Exception as e:
-        # Error handling
         print(f"Critical error: {str(e)}")
         exit(1)
