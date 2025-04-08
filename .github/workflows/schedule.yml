@@ -27,9 +27,21 @@ jobs:
       run: |
         python ls.py  # Run the script
 
+    - name: Git status check
+      run: git status
+    
     - name: Commit and push changes
       run: |
-        git add .
+        git config --global user.name "kevwee-lab"
+        git config --global user.email "kevwee-lab@users.noreply.github.com"
+    
+        git add lightning_data.csv
+    
+        git status  # Show what's staged
+    
+        # If nothing is staged, skip commit
+        git diff --cached --quiet && echo "No changes to commit" && exit 0
+    
         git commit -m "Updated lightning data"
         git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
         git push origin HEAD:${{ github.ref }}
