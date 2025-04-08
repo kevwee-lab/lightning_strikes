@@ -1,2 +1,0 @@
-code,errorMsg,data.records,timestamp
-0,,"[{'datetime': '2025-04-09T00:22:00+08:00', 'item': {'isStationData': False, 'readings': [], 'type': 'observation', 'isCompressed': True}, 'updatedTimestamp': '2025-04-09T00:24:02+08:00'}]",2025-04-08 16:24:44
