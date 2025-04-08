@@ -92,8 +92,11 @@ def save_data(df):
     print(f"Saved {len(df)} strikes to {SAVE_PATH}")
 
 if __name__ == "__main__":
-    lightning_df = fetch_lightning_data()
-    save_data(lightning_df)
+    try:
+        # Main execution
+        lightning_df = fetch_lightning_data()
+        save_data(lightning_df)
     except Exception as e:
+        # Error handling
         print(f"Critical error: {str(e)}")
         exit(1)
