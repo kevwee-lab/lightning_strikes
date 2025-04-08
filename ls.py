@@ -4,96 +4,80 @@ from datetime import datetime
 import pandas as pd
 import json
 
-# Define the directory and file path in the GitHub repository
-directory = '.'  # Changed to root directory
-save_path = os.path.join(directory, 'lightning_data.csv')
+# Configuration
+DIRECTORY = '.'  # Root directory
+SAVE_PATH = os.path.join(DIRECTORY, 'lightning_data.csv')
+API_URL = "https://api-open.data.gov.sg/v2/real-time/api/weather"
 
-# API URL and query parameters
-url = "https://api-open.data.gov.sg/v2/real-time/api/weather"
-querystring = {"api": "lightning"}
-
-# Make the request to the API
-response = requests.get(url, params=querystring)
-
-# Check if the request was successful
-if response.status_code == 200:
-    # Get the response data in JSON format
-    data = response.json()
+def fetch_lightning_data():
+    """Fetch paginated lightning data from API"""
+    params = {"api": "lightning", "date": datetime.now().strftime('%Y-%m-%d')}
+    pagination_token = None
+    all_strikes = []
     
-    # Print the full response for debugging
-    print("API Response:")
-    print(json.dumps(data, indent=2))
-    
-    # Extract relevant information
-    # Check if 'items' exists in the response
-    if 'items' in data:
-        items = data['items']
-        
-        # Prepare data for CSV
-        rows = []
-        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        
-        for item in items:
-            # Extract datetime if available
-            item_datetime = item.get('datetime', 'unknown')
+    while True:
+        try:
+            if pagination_token:
+                params["paginationToken"] = pagination_token
+            else:
+                params.pop("paginationToken", None)
+
+            response = requests.get(API_URL, params=params)
+            response.raise_for_status()
             
-            # Extract readings if available
-            if 'item' in item and 'readings' in item['item']:
-                readings = item['item']['readings']
-                
-                if readings:
-                    for reading in readings:
-                        row = {
-                            'timestamp': timestamp,
-                            'datetime': item_datetime,
-                            'location': reading.get('station_id', 'unknown'),
-                            'latitude': reading.get('lat', 'unknown'),
-                            'longitude': reading.get('lng', 'unknown'),
-                            'value': reading.get('value', 'unknown')
-                        }
-                        rows.append(row)
-                else:
-                    # If no readings, still record the event
-                    row = {
-                        'timestamp': timestamp,
-                        'datetime': item_datetime,
-                        'location': 'no_reading',
-                        'latitude': 'unknown',
-                        'longitude': 'unknown',
-                        'value': 'no_data'
+            data = response.json()
+            if data.get('code') != 0:
+                print(f"API Error: {data.get('errorMsg', 'Unknown error')}")
+                break
+
+            # Debugging output
+            print("\nAPI Response Structure:")
+            print(json.dumps({k: type(v) for k, v in data.items()}, indent=2))
+            
+            # Process records
+            for record in data.get('data', {}).get('records', []):
+                item = record.get('item', {})
+                for reading in item.get('readings', []):
+                    strike = {
+                        'fetch_time': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                        'observation_window': record.get('datetime'),
+                        'data_updated': record.get('updatedTimestamp'),
+                        'latitude': float(reading.get('location', {}).get('latitude', 0)),
+                        'longitude': float(reading.get('location', {}).get('longitude', 0)),
+                        'strike_type': reading.get('type'),
+                        'description': reading.get('text'),
+                        'strike_time': reading.get('datetime')
                     }
-                    rows.append(row)
-            else:
-                # Just record the API call if no proper structure
-                row = {
-                    'timestamp': timestamp,
-                    'datetime': item_datetime,
-                    'location': 'api_call',
-                    'latitude': 'unknown',
-                    'longitude': 'unknown',
-                    'value': 'no_structure'
-                }
-                rows.append(row)
-                
-        # Convert to DataFrame
-        if rows:
-            df = pd.DataFrame(rows)
+                    all_strikes.append(strike)
+
+            # Pagination control
+            pagination_token = data.get('data', {}).get('paginationToken')
+            if not pagination_token:
+                break
+
+        except requests.exceptions.RequestException as e:
+            print(f"Request failed: {str(e)}")
+            break
             
-            # Check if the file exists before appending
-            file_exists = os.path.isfile(save_path)
-            
-            # Use pandas' append mode if the file already exists, otherwise create the file
-            df.to_csv(save_path, mode='a', header=not file_exists, index=False)
-            
-            print(f"Data processed: {len(rows)} records")
-            if file_exists:
-                print(f"Data appended to existing file at {save_path}.")
-            else:
-                print(f"New dataset created and saved at {save_path}.")
-        else:
-            print("No data to save.")
-    else:
-        print("No 'items' found in the API response.")
-        print("Full response:", data)
-else:
-    print(f"Failed to retrieve data. HTTP status code: {response.status_code}")
+    return pd.DataFrame(all_strikes)
+
+def save_data(df):
+    """Save data to CSV with proper formatting"""
+    if df.empty:
+        print("No lightning data to save")
+        return
+
+    # Convert datetime fields
+    datetime_fields = ['observation_window', 'data_updated', 'strike_time']
+    for field in datetime_fields:
+        df[field] = pd.to_datetime(df[field], format='ISO8601')
+
+    # File operations
+    file_exists = os.path.isfile(SAVE_PATH)
+    df.to_csv(SAVE_PATH, mode='a', header=not file_exists, index=False)
+    print(f"Saved {len(df)} new strikes to {SAVE_PATH} (appended: {file_exists})")
+
+if __name__ == "__main__":
+    os.makedirs(DIRECTORY, exist_ok=True)
+    lightning_df = fetch_lightning_data()
+    save_data(lightning_df)
