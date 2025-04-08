@@ -26,20 +26,26 @@ jobs:
         python ls.py
     - name: Git status check
       run: git status
+
     
     - name: Commit and push changes
       run: |
+        mkdir -p lightning_data
+        if [ -z "$(ls -A lightning_data)" ]; then
+        touch lightning_data/.gitkeep
+        fi
+    
         git config --global user.name "kevwee-lab"
         git config --global user.email "kevwee-lab@users.noreply.github.com"
-    
-        # Add the directory instead of the specific file
-        git add lightning_data/*.csv
-    
-        git status
-    
-        # If nothing is staged, skip commit
-        git diff --cached --quiet && echo "No changes to commit" && exit 0
-    
-        git commit -m "Updated lightning data"
+        
+      
+        git add lightning_data/ || echo "No files to add"
+        
+        if [ -z "$(git diff --cached --name-only)" ]; then
+          echo "No changes to commit"
+          exit 0
+        fi
+        
+        git commit -m "Add lightning data for $(date +'%Y-%m-%d')"
         git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
         git push origin HEAD:${{ github.ref }}
