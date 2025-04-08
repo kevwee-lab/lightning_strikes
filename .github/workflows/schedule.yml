@@ -1,51 +1,60 @@
 name: Schedule Lightning Data Script
 on:
   schedule:
-    # Cron job format: 'minute hour day month weekday'
-    # This cron runs daily at 2:00 AM UTC
-    - cron: '0 2 * * *'
-    
+    - cron: '0 2 * * *'  # Daily at 2:00 AM UTC
   workflow_dispatch:
 jobs:
   run-script:
     runs-on: ubuntu-latest
     permissions:
-        contents: write
+      contents: write
     steps:
     - name: Checkout repository
       uses: actions/checkout@v2
+
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
         python-version: '3.8'
-    - name: Install dependencies
-      run: |
-        pip install requests pandas
-    - name: Run lightning script
-      run: |
-        python ls.py
-    - name: Git status check
-      run: git status
 
-    
+    - name: Install dependencies
+      run: pip install requests pandas
+
+    - name: Run lightning script
+      run: python ls.py
+
+    - name: Verify CSV creation
+      run: |
+        echo "--- Directory Contents ---"
+        ls -l lightning_data/
+        echo "--------------------------"
+        if [ -f lightning_data/lightning_$(date +%F).csv ]; then
+          echo "CSV file created successfully"
+        else
+          echo "Warning: No CSV file created"
+        fi
+
     - name: Commit and push changes
       run: |
+        # Create directory if missing
         mkdir -p lightning_data
+        
+        # Add placeholder if empty
         if [ -z "$(ls -A lightning_data)" ]; then
-        touch lightning_data/.gitkeep
+          touch lightning_data/.gitkeep
         fi
-    
-        git config --global user.name "kevwee-lab"
-        git config --global user.email "kevwee-lab@users.noreply.github.com"
-        
-      
-        git add lightning_data/ || echo "No files to add"
-        
-        if [ -z "$(git diff --cached --name-only)" ]; then
+
+        # Configure git
+        git config --global user.name "github-actions"
+        git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+        # Add changes
+        git add lightning_data/
+
+        # Commit if changes exist
+        if ! git diff --cached --quiet; then
+          git commit -m "Update lightning data [$(date +%F)]"
+          git push origin HEAD:${{ github.ref }}
+        else
           echo "No changes to commit"
-          exit 0
         fi
-        
-        git commit -m "Add lightning data for $(date +'%Y-%m-%d')"
-        git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
-        git push origin HEAD:${{ github.ref }}
