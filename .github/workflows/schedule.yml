@@ -1,32 +1,25 @@
 name: Schedule Lightning Data Script
-
 on:
   schedule:
     # Cron job format: 'minute hour day month weekday'
     # This cron runs daily at 2:00 AM UTC
     - cron: '0 2 * * *'
-
 jobs:
   run-script:
     runs-on: ubuntu-latest
-
     steps:
     - name: Checkout repository
       uses: actions/checkout@v2
-
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
         python-version: '3.8'  # You can use another version if needed
-
     - name: Install dependencies
       run: |
         pip install requests pandas  # Install dependencies
-
     - name: Run lightning script
       run: |
         python ls.py  # Run the script
-
     - name: Git status check
       run: git status
     
