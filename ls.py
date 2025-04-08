@@ -4,9 +4,8 @@ from datetime import datetime
 import pandas as pd
 
 # Configuration
-DIRECTORY = '.'  # Root directory
-SAVE_PATH = os.path.join(DIRECTORY, 'lightning_data.csv')
-API_URL = "https://api-open.data.gov.sg/v2/real-time/api/weather"
+DIRECTORY = 'lightning_data'  # Dedicated folder name
+SAVE_PATH = os.path.join(DIRECTORY, f"lightning_{datetime.now().strftime('%Y-%m-%d')}.csv")
 
 def fetch_lightning_data():
     """Fetch paginated lightning data from API"""
