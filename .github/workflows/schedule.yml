@@ -13,13 +13,13 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
-        python-version: '3.8'  # You can use another version if needed
+        python-version: '3.8'
     - name: Install dependencies
       run: |
-        pip install requests pandas  # Install dependencies
+        pip install requests pandas
     - name: Run lightning script
       run: |
-        python ls.py  # Run the script
+        python ls.py
     - name: Git status check
       run: git status
     
@@ -28,9 +28,10 @@ jobs:
         git config --global user.name "kevwee-lab"
         git config --global user.email "kevwee-lab@users.noreply.github.com"
     
-        git add lightning_data.csv
+        # Add the directory instead of the specific file
+        git add lightning_data/
     
-        git status  # Show what's staged
+        git status
     
         # If nothing is staged, skip commit
         git diff --cached --quiet && echo "No changes to commit" && exit 0
