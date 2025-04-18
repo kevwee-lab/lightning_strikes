@@ -1,22 +1,21 @@
 import os
 import requests
-from datetime import datetime, timedelta  # Modified import
-from zoneinfo import ZoneInfo  # New import
+from datetime import datetime, timedelta
 import pandas as pd
 
 # Configuration
 DIRECTORY = 'lightning_data'
 API_URL = "https://api-open.data.gov.sg/v2/real-time/api/weather"
-SINGAPORE_TZ = ZoneInfo("Asia/Singapore")  # Timezone constant
 
 def fetch_lightning_data():
-    """Fetch paginated lightning data from API for yesterday (Singapore time)"""
-    # Calculate yesterday in Singapore time
-    yesterday = datetime.now(SINGAPORE_TZ) - timedelta(days=1)
+    """Fetch yesterday's lightning data (Singapore date)"""
+    # Calculate yesterday in UTC+8 (Singapore) time
+    utc_now = datetime.utcnow()
+    yesterday_sg = (utc_now + timedelta(hours=8)) - timedelta(days=1)
     
     params = {
         "api": "lightning",
-        "date": yesterday.strftime('%Y-%m-%d')  # Use yesterday's date
+        "date": yesterday_sg.strftime('%Y-%m-%d')  # Previous day's date
     }
     pagination_token = None
     all_strikes = []
@@ -36,15 +35,14 @@ def fetch_lightning_data():
                 print(f"API Error: {data.get('errorMsg', 'Unknown error')}")
                 break
 
-            # Process records with Singapore timestamps
+            # Process records (no datetime conversion needed)
             for record in data.get('data', {}).get('records', []):
                 item = record.get('item', {})
                 for reading in item.get('readings', []):
                     try:
                         location = reading.get('location', {})
                         strike = {
-                            # Use Singapore time for fetch_time
-                            'fetch_time': datetime.now(SINGAPORE_TZ).strftime('%Y-%m-%d %H:%M:%S'),
+                            'fetch_time': (datetime.utcnow() + timedelta(hours=8)).strftime('%Y-%m-%d %H:%M:%S'),
                             'observation_window': record.get('datetime'),
                             'data_updated': record.get('updatedTimestamp'),
                             'latitude': float(location.get('latitude', 0)),
@@ -73,20 +71,13 @@ def save_data(df):
         print("No data to save")
         return
 
-    # Use same yesterday date as API call
-    yesterday = datetime.now(SINGAPORE_TZ) - timedelta(days=1)
-    filename = f"lightning_{yesterday.strftime('%Y-%m-%d')}.csv"  # Yesterday's date
+    # Use same date as API call
+    utc_now = datetime.utcnow()
+    yesterday_sg = (utc_now + timedelta(hours=8)) - timedelta(days=1)
+    filename = f"lightning_{yesterday_sg.strftime('%Y-%m-%d')}.csv"
     SAVE_PATH = os.path.join(DIRECTORY, filename)
     
-    # Convert datetime fields
-    datetime_fields = ['observation_window', 'data_updated', 'strike_time']
-    for field in datetime_fields:
-        df[field] = pd.to_datetime(df[field], format='ISO8601', errors='coerce')
-    
-    # Ensure directory exists
-    os.makedirs(DIRECTORY, exist_ok=True)
-    
-    # Save with header
+    # Save raw ISO8601 strings (already in +08:00 timezone)
     df.to_csv(SAVE_PATH, index=False)
     print(f"Saved {len(df)} strikes to {SAVE_PATH}")
 
