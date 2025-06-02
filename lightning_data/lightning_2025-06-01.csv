@@ -1,0 +1,2 @@
+fetch_time,observation_window,data_updated,latitude,longitude,strike_type,description,strike_time
+2025-06-02 11:15:22,2025-06-01T16:06:00+08:00,2025-06-01T16:08:02+08:00,1.3978,104.2962,G,Cloud to Ground,2025-06-01T16:04:01.006+08:00
