@@ -1,0 +1,2 @@
+fetch_time,observation_window,data_updated,latitude,longitude,strike_type,description,strike_time
+2026-02-23 12:12:01,2026-02-22T21:22:00+08:00,2026-02-22T21:24:05+08:00,1.2925,103.574,C,Cloud to Cloud,2026-02-22T21:20:30.064+08:00
