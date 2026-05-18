@@ -1,0 +1,3 @@
+fetch_time,observation_window,data_updated,latitude,longitude,strike_type,description,strike_time
+2026-05-18 14:02:18,2026-05-17T19:02:00+08:00,2026-05-17T19:04:02+08:00,1.6471,103.7063,C,Cloud to Cloud,2026-05-17T19:00:45.618+08:00
+2026-05-18 14:02:18,2026-05-17T19:02:00+08:00,2026-05-17T19:04:02+08:00,1.6379,103.7087,C,Cloud to Cloud,2026-05-17T19:00:45.618+08:00
